@@ -554,7 +554,8 @@ class Device(object):
         # @@@ need to trap this and re-raise accordingly.
 
         try:
-            rpc_rsp_e = self._conn.rpc(rpc_cmd_e)._NCElement__doc
+            base_rsp = self._conn.rpc(rpc_cmd_e)
+            rpc_rsp_e = base_rsp._NCElement__doc
         except NcOpErrors.TimeoutExpiredError:
             # err is a TimeoutExpiredError from ncclient,
             # which has no such attribute as xml.
@@ -586,8 +587,12 @@ class Device(object):
         try:
             ret_rpc_rsp = rpc_rsp_e[0]
         except IndexError:
-            # no children, so assume it means we are OK
-            return True
+            # may be a plain-text json response
+            try:
+                return json.loads(base_rsp_NCElement__root.text)
+            except ValueError:
+                # no children, so assume it means we are OK
+                return True
 
         # if the caller provided a "to Python" conversion function, then invoke
         # that now and return the results of that function.  otherwise just
